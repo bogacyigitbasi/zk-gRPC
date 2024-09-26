@@ -2,7 +2,7 @@
 /// a, b and compute y1= a^x mod p and y2 = b^x mod p where x is witness
 /// pick a random value k and compute R1= a^k and R2 = b^k mod p (note that these values known by the both parties)
 /// verifier picks a random challenge c and sends it to prover
-/// response = s = k - c*x is the proof
+/// response = s = k - c*x mod q (order?) is the proof
 /// verifier will verify if R1 == a^s . y1^c and if R2 == b^s. y2^c
 use num_bigint::BigUint;
 
@@ -15,11 +15,11 @@ pub fn mod_exp(num: &BigUint, exp: &BigUint, p: &BigUint) -> BigUint {
 /// in chaum_pedersen we have response s = k - c*x mod p
 /// where k is a random number, x witness and c is the challenge given by verifier
 ///
-pub fn proof(k: &BigUint, c: &BigUint, p: &BigUint, x: &BigUint) -> BigUint {
+pub fn proof(k: &BigUint, c: &BigUint, x: &BigUint, p: &BigUint) -> BigUint {
     if *k >= c * x {
         return (k - c * x).modpow(&BigUint::from(1u32), p);
     } else {
-        return p - (k - c * x).modpow(&BigUint::from(1u32), p); // k < cx
+        return p - (c * x - k).modpow(&BigUint::from(1u32), p); // k < cx
     }
 }
 
@@ -35,7 +35,69 @@ pub fn verify(
     s: &BigUint,  // response
     p: &BigUint,  // mod
 ) -> bool {
-    let left = *r1 == mod_exp(a, s, p) * mod_exp(y1, c, p);
-    let right = *r2 == mod_exp(b, s, p) * mod_exp(y2, c, p);
-    left & right
+    let left = *r1
+        == mod_exp(
+            &(mod_exp(a, s, p) * mod_exp(y1, c, p)),
+            &BigUint::from(1u32),
+            &p,
+        );
+    let right = *r2
+        == mod_exp(
+            &(mod_exp(b, s, p) * mod_exp(y2, c, p)),
+            &BigUint::from(1u32),
+            p,
+        );
+    left && right
+}
+
+/// add unit tests
+#[cfg(test)]
+mod test {
+    use num_bigint::RandBigInt;
+
+    use super::*; // all functions above will be used
+
+    #[test]
+    fn test_ex() {
+        // lets pick two generators
+        let a = BigUint::from(4u32);
+        let b = BigUint::from(9u32);
+        // set a witness value.
+        let w = BigUint::from(6u32);
+        // module
+        let p = BigUint::from(23u32);
+        // order of group
+        let q = BigUint::from(11u32);
+
+        let y1 = mod_exp(&a, &w, &p);
+        let y2 = mod_exp(&b, &w, &p);
+
+        assert_eq!(y1, BigUint::from(2u32));
+        assert_eq!(y2, BigUint::from(3u32));
+        // generate random k
+        // let mut rng = rand::thread_rng();
+        // let k = rng.gen_biguint(32);
+        let k = BigUint::from(7u32);
+        let r1 = mod_exp(&a, &k, &p);
+        let r2 = mod_exp(&b, &k, &p);
+
+        assert_eq!(r1, BigUint::from(8u32));
+        assert_eq!(r2, BigUint::from(4u32));
+        let c = BigUint::from(4u32);
+
+        // compute response
+        let s = proof(&k, &c, &w, &q);
+        assert_eq!(s, BigUint::from(5u32));
+        // lets verify
+        let verif = verify(&a, &b, &y1, &y2, &r1, &r2, &c, &s, &p);
+        assert!(verif);
+        // let left = mod_exp(&a, &s, &p) * mod_exp(&y1, &c, &p);
+        // let right = mod_exp(&b, &s, &p) * mod_exp(&y2, &c, &p);
+
+        // if (left == r1 && right == r2) {
+        //     println!("Proven");
+        // } else {
+        //     println!("nono")
+        // }
+    }
 }
