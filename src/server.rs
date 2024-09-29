@@ -1,3 +1,4 @@
+use num_bigint::BigUint;
 use tonic::{transport::Server, Code, Request, Response, Status};
 
 pub mod zkp_auth {
@@ -8,6 +9,21 @@ use zkp_auth::{
     AuthenticationAnswerRequest, AuthenticationAnswerResponse, AuthenticationChallengeRequest,
     AuthenticationChallengeResponse, RegisterRequest, RegisterResponse,
 };
+
+#[derive(Debug, Default)]
+pub struct User {
+    // register
+    pub name: String,
+    pub y1: BigUint,
+    pub y2: BigUint,
+    // auth
+    pub r1: BigUint,
+    pub r2: BigUint,
+    // verification
+    pub c: BigUint,
+    pub s: BigUint,
+    pub session_id: String,
+}
 
 // tokio struct is defined
 // now we need to implement the traits specified in the protobuf file
@@ -21,7 +37,18 @@ impl Auth for AuthImpl {
         &self,
         request: Request<RegisterRequest>,
     ) -> Result<Response<RegisterResponse>, Status> {
-        todo!()
+        // we need to generate y1 and y2 and user info (likely id)
+        let request = request.into_inner();
+
+        let y1 = BigUint::from_bytes_be(&request.y1);
+        let y2 = BigUint::from_bytes_be(&request.y2);
+
+        let mut user = User::default();
+        user.name = request.user;
+        user.y1 = y1;
+        user.y2 = y2;
+
+        Ok((Response::new(RegisterResponse {})))
     }
 
     async fn create_authentication_challenge(
@@ -42,7 +69,8 @@ impl Auth for AuthImpl {
 #[tokio::main]
 async fn main() {
     let addr = "127.0.0.1:50051".to_string();
-    println!("√ Running the serer in {}, ", addr);
+    // emojis commad + ctrl + space :p
+    println!("✅ Running the serer in {}, ", addr);
 
     let auth = AuthImpl::default();
     Server::builder()
