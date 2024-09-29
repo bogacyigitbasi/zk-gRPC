@@ -8,4 +8,20 @@ edition = "2021"
 [dependencies]
 hex = "0.4.3"
 num-bigint = {version="0.4", features =["rand"]}
+protobuf = "3.5.1"
 rand = "0.8.5"
+tokio = "1.40.0"
+tonic= "0.12.3"
+prost = "0.13.3"
+
+#we need that before the compilation (tonic)
+[build-dependencies]
+tonic-build="0.12.3"
+
+[[bin]]
+name = "server"
+path = "./src/server.rs"
+
+[[bin]]
+name = "client"
+path = "./src/client.rs"

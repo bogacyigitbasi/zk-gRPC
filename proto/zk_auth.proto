@@ -1,0 +1,53 @@
+// we will use tonic to compile the file.
+syntax = "proto3";
+
+package zkp_auth;
+
+
+// prover register using chaum_pedersen
+// y1 = a^x mod p y2 = b^x mod p
+message RegisterRequest {
+    string user = 1; // first argument
+    bytes y1 = 2; // we will need to serialize the BigUInt to bytes
+    bytes y2 = 3; // we will need to seriaize the BigUInt to bytes
+}
+
+message RegisterResponse {
+
+}
+
+// prover sends r1 = a^k mod p and r2 = b^k mod p
+// verifier sends challenge c
+
+message AuthenticationChallengeRequest {
+    string user = 1;
+    bytes r1 = 2;
+    bytes r2 = 3;
+}
+
+message AuthenticationChallengeResponse {
+    string auth_id = 1; //sending as 2nd checkpoint to correlate the id and user
+    bytes c = 2;
+}
+
+// prover sends the response/proof to the verifier s = k - c*x mod q
+// verifier sends the session ID if the solution is correct
+message AuthenticationAnswerRequest {
+    string auth_id = 1;
+    bytes s = 2;
+}
+
+message AuthenticationAnswerResponse {
+    string session_id = 1;
+}
+
+// 3 functions we need from server perspective
+service Auth {
+    // register user with y1 and y2 and
+    rpc Register(RegisterRequest) returns (RegisterResponse){}
+    // auth request from prover along with r1, r2 which returns back c and id to user
+    rpc CreateAuthenticationChallenge(AuthenticationChallengeRequest) returns (AuthenticationChallengeResponse) {}
+    // verify and return session_id
+    rpc VerifyAuthentication(AuthenticationAnswerRequest) returns(AuthenticationAnswerResponse){}
+}
+
