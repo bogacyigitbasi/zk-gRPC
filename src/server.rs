@@ -9,10 +9,6 @@ use zkp_auth::{
     AuthenticationChallengeResponse, RegisterRequest, RegisterResponse,
 };
 
-fn main() {
-    println!("Hey this is server. ");
-}
-
 // tokio struct is defined
 // now we need to implement the traits specified in the protobuf file
 #[derive(Debug, Default)]
@@ -45,6 +41,13 @@ impl Auth for AuthImpl {
 
 #[tokio::main]
 async fn main() {
-    let addr = "127.0.0.1:500051".to_string();
+    let addr = "127.0.0.1:50051".to_string();
     println!("√ Running the serer in {}, ", addr);
+
+    let auth = AuthImpl::default();
+    Server::builder()
+        .add_service(AuthServer::new(auth))
+        .serve(addr.parse().expect("could not convert address"))
+        .await
+        .unwrap();
 }
