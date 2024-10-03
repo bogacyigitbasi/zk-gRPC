@@ -42,22 +42,28 @@ impl Auth for AuthImpl {
         &self,
         request: Request<RegisterRequest>,
     ) -> Result<Response<RegisterResponse>, Status> {
-        println!("Processing  Register, {:?}", request);
         // we need to generate y1 and y2 and user info (likely id)
         let request = request.into_inner();
+
+        // let mut user = User::default();
+        let user_name = request.user;
+
+        println!("Processing  Register, {}", user_name);
 
         let y1 = BigUint::from_bytes_be(&request.y1);
         let y2 = BigUint::from_bytes_be(&request.y2);
 
         let mut user = User::default();
-        let user_name = request.user;
+
         user.name = user_name.clone();
         user.y1 = y1;
         user.y2 = y2;
 
         let mut user_map = &mut self.user_info.lock().unwrap();
-        user_map.insert(user_name, user);
-
+        user_map.insert(user_name.clone(), user);
+        // let test_user = user_map.get_mut(&user_name);
+        println!("map , {:?}", &user_map);
+        // println!("Register successful for , {}", user_name);
         Ok((Response::new(RegisterResponse {})))
     }
 
@@ -66,15 +72,22 @@ impl Auth for AuthImpl {
         &self,
         request: Request<AuthenticationChallengeRequest>,
     ) -> Result<Response<AuthenticationChallengeResponse>, Status> {
-        println!("Challenge is being generated, {:?}", request);
+        // println!("Challenge is being generated, {:?}", request);
         // we need to generate r1 and r2
         let request = request.into_inner();
 
-        let mut user_map = &mut self.user_info.lock().unwrap();
+        let user_map = &mut self.user_info.lock().unwrap();
 
-        let user_name = request.user;
+        let user_name = request.user.trim().to_string();
+        // println!("Challenge is being generated, {}", &user_name);
 
+        println!("map {:?}", &user_map);
+
+        // let mut test_user = user_map.get_mut(&user_name);
+        // println!("Challenge is being generated, {:?}", test_user);
         if let Some(user_info) = user_map.get_mut(&user_name) {
+            // if (test_user.is_some()) {
+            // let mut user_info = test_user.unwrap();
             user_info.r1 = BigUint::from_bytes_be(&request.r1);
             user_info.r2 = BigUint::from_bytes_be(&request.r2);
 
@@ -87,7 +100,8 @@ impl Auth for AuthImpl {
 
             let mut auth_id_user = &mut self.auth_id_user.lock().unwrap();
 
-            auth_id_user.insert(auth_id.clone(), user_name);
+            auth_id_user.insert(auth_id.clone(), user_name.clone());
+            println!("✅ Successful Challenge Request username: {:?}", user_name);
             Ok(Response::new(AuthenticationChallengeResponse {
                 auth_id: auth_id,
                 c: c.to_bytes_be(),

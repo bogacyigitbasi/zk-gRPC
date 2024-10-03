@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Rust Program",
+            "type": "lldb", // Use LLDB for debugging
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/client",
+            "args": [], // You can pass command-line arguments to the program here
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": [
+                "rust"
+            ],
+            "stopOnEntry": false, // Optionally stop at the entry point
+            "console": "integratedTerminal", // Use the integrated terminal for input/output
+            // "preLaunchTask": "cargo build", // Automatically build the project before launching
+            // "postDebugTask": "cargo clean" // Optionally clean up after debugging
+        }
+    ]
+}
