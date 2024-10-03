@@ -60,11 +60,24 @@ async fn main() {
 
     let auth_id = challenge_auth_id.get_ref();
     // println!("Challenge response: {:?}", auth_id.);
+    // let response = ZKP::proof(
+    //     &k,
+    //     auth_id.c,
+    //     &BigUint::from_bytes_be(&secret.trim().as_bytes()),
+    // );
     /// now its time to generate the proof as a client that shows we know the password without sharing it
     /// generate response using challenge which is s = k - c.x
+    ///
+    let zk = ZKP::init(&a, &b, &p, &q);
+    let proof = zk.proof(
+        &k,
+        &BigUint::from_bytes_be(&auth_id.c),
+        &BigUint::from_bytes_be(&secret.trim().as_bytes()),
+    );
+
     let auth_req = AuthenticationAnswerRequest {
         auth_id: auth_id.auth_id.to_string(),
-        s: auth_id.c.to_vec(),
+        s: proof.to_bytes_be(),
     };
     let session_id = client
         .verify_authentication(auth_req)

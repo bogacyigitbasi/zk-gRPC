@@ -61,8 +61,7 @@ impl Auth for AuthImpl {
 
         let mut user_map = &mut self.user_info.lock().unwrap();
         user_map.insert(user_name.clone(), user);
-        // let test_user = user_map.get_mut(&user_name);
-        println!("map , {:?}", &user_map);
+        // println!("map , {:?}", &user_map);
         // println!("Register successful for , {}", user_name);
         Ok((Response::new(RegisterResponse {})))
     }
@@ -81,7 +80,7 @@ impl Auth for AuthImpl {
         let user_name = request.user.trim().to_string();
         // println!("Challenge is being generated, {}", &user_name);
 
-        println!("map {:?}", &user_map);
+        // println!("map {:?}", &user_map);
 
         // let mut test_user = user_map.get_mut(&user_name);
         // println!("Challenge is being generated, {:?}", test_user);
@@ -91,7 +90,7 @@ impl Auth for AuthImpl {
             user_info.r1 = BigUint::from_bytes_be(&request.r1);
             user_info.r2 = BigUint::from_bytes_be(&request.r2);
 
-            let (_, q, _, _) = ZKP::get_constants();
+            let (_, _, _, q) = ZKP::get_constants();
             // got the order, lets call max rand for challenge
             // let c = BigUint::from(123u32);
             let c = ZKP::gen_rand(&q);
@@ -118,7 +117,7 @@ impl Auth for AuthImpl {
         &self,
         request: Request<AuthenticationAnswerRequest>,
     ) -> Result<Response<AuthenticationAnswerResponse>, Status> {
-        println!("Verification request, {:?}", request);
+        // println!("Verification request, {:?}", request);
         // we need to generate r1 and r2
         let request = request.into_inner();
 
@@ -131,14 +130,18 @@ impl Auth for AuthImpl {
             let instance = user_map.get(auth_id).unwrap();
             let (a, b, p, q) = ZKP::get_constants();
             let zkp = ZKP::init(&a, &b, &p, &q);
+            let s = &BigUint::from_bytes_be(&request.s);
+
+            println!("response {:?}", s);
             let verif = zkp.verify(
                 &instance.y1,
                 &instance.y2,
                 &instance.r1,
                 &instance.r2,
                 &instance.c,
-                &BigUint::from_bytes_be(&request.s),
+                &s,
             );
+
             if (verif) {
                 Ok(Response::new(AuthenticationAnswerResponse {
                     session_id: ZKP::gen_rand_string(12),
