@@ -5,7 +5,10 @@ pub mod zk_auth {
 use std::io::{stdin, Read};
 // coming from the generated rs file using proto
 use num_bigint::BigUint;
-use zk_auth::{auth_client::AuthClient, AuthenticationChallengeRequest, RegisterRequest};
+use zk_auth::{
+    auth_client::AuthClient, AuthenticationAnswerRequest, AuthenticationChallengeRequest,
+    RegisterRequest,
+};
 use ChaumPedersen::ZKP;
 // async main
 #[tokio::main]
@@ -49,9 +52,24 @@ async fn main() {
         r2: r2.to_bytes_be(),
     };
     // println!("Request from client: {:?}", request);
-    let challenge = client
+    let challenge_auth_id = client
         .create_authentication_challenge(request)
         .await
         .expect("Couldnt get a challenge from server");
-    println!("Challenge response: {:?}", challenge);
+    // println!("Challenge response: {:?}", challenge_auth_id);
+
+    let auth_id = challenge_auth_id.get_ref();
+    // println!("Challenge response: {:?}", auth_id.);
+    /// now its time to generate the proof as a client that shows we know the password without sharing it
+    /// generate response using challenge which is s = k - c.x
+    let auth_req = AuthenticationAnswerRequest {
+        auth_id: auth_id.auth_id.to_string(),
+        s: auth_id.c.to_vec(),
+    };
+    let session_id = client
+        .verify_authentication(auth_req)
+        .await
+        .expect("Couldnt get a session id from server");
+
+    println!("session id: {:?}", session_id.get_ref().session_id);
 }

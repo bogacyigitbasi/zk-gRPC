@@ -122,14 +122,13 @@ impl Auth for AuthImpl {
         // we need to generate r1 and r2
         let request = request.into_inner();
 
-        let mut user_map = &mut self.auth_id_user.lock().unwrap();
-        let mut user_sign_map = &mut self.user_info.lock().unwrap();
+        let mut auth_id_user_map = &mut self.auth_id_user.lock().unwrap();
+        let user_map = &mut self.user_info.lock().unwrap();
 
-        let auth_id = request.auth_id;
+        // let auth_id = request.auth_id.trim().to_string();
 
-        let instance = user_sign_map.get(&auth_id).unwrap();
-
-        if let Some(auth_id) = user_map.get_mut(&auth_id) {
+        if let Some(auth_id) = auth_id_user_map.get_mut(&request.auth_id) {
+            let instance = user_map.get(auth_id).unwrap();
             let (a, b, p, q) = ZKP::get_constants();
             let zkp = ZKP::init(&a, &b, &p, &q);
             let verif = zkp.verify(
@@ -138,7 +137,7 @@ impl Auth for AuthImpl {
                 &instance.r1,
                 &instance.r2,
                 &instance.c,
-                &instance.s,
+                &BigUint::from_bytes_be(&request.s),
             );
             if (verif) {
                 Ok(Response::new(AuthenticationAnswerResponse {
@@ -153,7 +152,7 @@ impl Auth for AuthImpl {
         } else {
             Err(Status::new(
                 Code::NotFound,
-                format!("AuthId: {} not found in database", auth_id),
+                format!("AuthId: {} not found in database", request.auth_id),
             ))
         }
     }
