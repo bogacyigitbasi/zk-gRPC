@@ -1,0 +1,10 @@
+services:
+  zk-grpc:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./:/zk-grpc
+    environment:
+      - USER=bogachanyigitbasi
+    container_name: zk-grpc
